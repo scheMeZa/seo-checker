@@ -1,0 +1,31 @@
+{
+  "name": "seo-checker",
+  "version": "1.0.0",
+  "description": "A simple, open-source SEO checker for your website. Enter your site's URL and get actionable recommendations to improve your search engine ranking. Track your progress over time and see how your changes impact your SEO score.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scheMeZa/seo-checker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/scheMeZa/seo-checker/issues"
+  },
+  "homepage": "https://github.com/scheMeZa/seo-checker#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.16.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

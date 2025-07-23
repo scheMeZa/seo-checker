@@ -9,7 +9,15 @@ A simple, open-source SEO checker for your website. Enter your site's URL and ge
 - Optionally crawl and score all internal links for a comprehensive report
 - Clean, modern UI powered by TailwindCSS
 
+## Tech Stack
+- Node.js
+- Express.js
+- MongoDB (with Mongoose ODM, using ObjectId as primary key)
+- TailwindCSS
+
 ## Getting Started
+
+You will need a MongoDB connection string. Copy `.env.example` to `.env` and fill in your credentials.
 
 _Installation and running instructions will be added soon._
 
