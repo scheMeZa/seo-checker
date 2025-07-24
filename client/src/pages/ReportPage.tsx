@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+// @ts-ignore
+import { io as socketIOClient } from 'socket.io-client';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const SOCKET_URL = API_URL.replace(/\/api.*/, ''); // assumes API_URL ends with /api
 
 export default function ReportPage() {
   const { reportId } = useParams<{ reportId: string }>();
@@ -11,7 +14,8 @@ export default function ReportPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    let interval: any;
+    let socket;
+    let isMounted = true;
     async function fetchReport() {
       try {
         setLoading(true);
@@ -19,23 +23,48 @@ export default function ReportPage() {
         const res = await fetch(`${API_URL}/api/reports/${reportId}`);
         if (!res.ok) throw new Error('Failed to fetch report');
         const data = await res.json();
-        setReport(data);
+        if (isMounted) setReport(data);
         setLoading(false);
-        if (data.status === 'pending' || data.status === 'in_progress') {
-          if (!interval) {
-            interval = setInterval(fetchReport, 5000);
-          }
-        } else {
-          if (interval) clearInterval(interval);
-        }
       } catch (err: any) {
         setError(err.message);
         setLoading(false);
       }
     }
     fetchReport();
-    interval = setInterval(fetchReport, 5000);
-    return () => clearInterval(interval);
+    // Connect to socket
+    // Use a single socket instance per page
+    // If running locally, SOCKET_URL may be http://localhost:5000
+    // If deployed, SOCKET_URL should match backend
+    // You may need to adjust CORS settings on backend
+    // @ts-ignore
+    socket = socketIOClient(SOCKET_URL);
+    // Listen for report updates
+    socket.on('reportUpdated', (payload: { reportId: string, report: any }) => {
+      if (payload.reportId === reportId) {
+        setReport(payload.report);
+      }
+    });
+    // Listen for page report updates
+    socket.on('pageReportUpdated', (payload: { reportId: string, pageReport: any }) => {
+      if (payload.reportId === reportId) {
+        setReport((prev: any) => {
+          if (!prev) return prev;
+          let updatedPages;
+          if (prev.pageReports.some((p: any) => p._id === payload.pageReport._id)) {
+            updatedPages = prev.pageReports.map((p: any) =>
+              p._id === payload.pageReport._id ? payload.pageReport : p
+            );
+          } else {
+            updatedPages = [...prev.pageReports, payload.pageReport];
+          }
+          return { ...prev, pageReports: updatedPages };
+        });
+      }
+    });
+    return () => {
+      isMounted = false;
+      if (socket) socket.disconnect();
+    };
   }, [reportId]);
 
   let progress = 0;
@@ -69,8 +98,8 @@ export default function ReportPage() {
               <div className="text-2xl font-extrabold text-primary dark:text-blue-400 animate-pulse mb-2 tracking-wide uppercase">Generating Report...</div>
               <div className="text-lg text-gray-700 dark:text-gray-300 animate-pulse mb-4">This may take up to a minute for large sites.</div>
             </div>
-            {report && report.pageReports && report.pageReports.length > 0 && (
-              <div className="flex flex-col items-center">
+            {report && (
+              <div className="flex flex-col items-center w-full">
                 <div className="text-lg font-semibold text-primary dark:text-blue-400 mb-2">
                   {complete} / {total} pages complete
                 </div>
@@ -80,7 +109,9 @@ export default function ReportPage() {
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Progress: {progress}%</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">Progress: {progress}%</div>
+                {/* Recent Activity Events */}
+                <RecentPageEvents pageReports={report.pageReports || []} />
               </div>
             )}
           </div>
@@ -138,4 +169,37 @@ function renderStatusBadge(status: string) {
   else if (status === 'in_progress' || status === 'pending') color = 'bg-yellow-400 text-gray-900';
   else if (status === 'error') color = 'bg-red-500 text-white';
   return <span className={`px-2 py-1 rounded text-xs font-bold ${color}`}>{status.replace('_', ' ')}</span>;
+}
+
+function RecentPageEvents({ pageReports }: { pageReports: any[] }) {
+  // Sort by updatedAt/createdAt descending, fallback to createdAt if no updatedAt
+  const sorted = [...pageReports]
+    .filter(p => p.status !== 'pending')
+    .sort((a, b) => {
+      const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+      const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 5);
+  const opacities = ['opacity-100 scale-100', 'opacity-80 scale-95', 'opacity-60 scale-90', 'opacity-40 scale-85', 'opacity-20 scale-80'];
+  return (
+    <div className="w-full flex flex-col items-center mt-2">
+      <h3 className="text-base font-semibold text-primary dark:text-blue-400 mb-2">Recent Activity</h3>
+      <ul className="flex flex-col gap-2 w-full items-center">
+        {sorted.length === 0 ? (
+          <li className="text-xs text-gray-400">Waiting for pages to be scheduled...</li>
+        ) : (
+          sorted.map((p, idx) => (
+            <li
+              key={p._id}
+              className={`transition-all duration-300 rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-700 flex items-center gap-3 w-11/12 ${opacities[idx]}`}
+            >
+              <span className="font-mono text-xs truncate max-w-[12rem] text-gray-700 dark:text-gray-200">{p.url}</span>
+              {renderStatusBadge(p.status)}
+            </li>
+          ))
+        )}
+      </ul>
+    </div>
+  );
 } 

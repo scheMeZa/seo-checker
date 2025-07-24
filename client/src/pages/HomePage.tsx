@@ -1,5 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// @ts-ignore
+import { io as socketIOClient } from 'socket.io-client';
 
 // Bolt icon from Heroicons (solid)
 const BoltIcon = (
@@ -23,6 +25,36 @@ export default function HomePage() {
       .then(res => res.json())
       .then(data => setLatestReports(data.slice(0, 3)))
       .catch(() => setLatestReports([]));
+
+    // Real-time updates for recent reports
+    const SOCKET_URL = API_URL.replace(/\/api.*/, '');
+    // @ts-ignore
+    const socket = socketIOClient(SOCKET_URL);
+    socket.on('reportUpdated', (payload: { reportId: string, report: any }) => {
+      setLatestReports((prev: any[]) => {
+        const idx = prev.findIndex(r => r._id === payload.reportId);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        updated[idx] = payload.report;
+        return updated;
+      });
+    });
+    socket.on('pageReportUpdated', (payload: { reportId: string, pageReport: any }) => {
+      setLatestReports((prev: any[]) => {
+        const idx = prev.findIndex(r => r._id === payload.reportId);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        if (updated[idx].pageReports) {
+          updated[idx].pageReports = updated[idx].pageReports.map((p: any) =>
+            p._id === payload.pageReport._id ? payload.pageReport : p
+          );
+        }
+        return updated;
+      });
+    });
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const API_URL = import.meta.env.VITE_API_URL;

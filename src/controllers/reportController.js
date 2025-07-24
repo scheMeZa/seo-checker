@@ -5,6 +5,7 @@ const puppeteer = require('puppeteer');
 const lighthouse = (...args) => import('lighthouse').then(mod => mod.default(...args));
 const { URL } = require('url');
 const { pageAuditQueue } = require('../utils/queue');
+const { io } = require('../app');
 
 exports.createReport = async (req, res) => {
   try {
@@ -39,12 +40,14 @@ async function processReport(reportId, url) {
       if (!pageReport) {
         pageReport = new PageReport({ report: reportId, url: link, status: 'crawling' });
         await pageReport.save();
+        if (io) io.emit('pageReportUpdated', { reportId, pageReport });
         await Report.findByIdAndUpdate(reportId, {
           $addToSet: { pageReports: pageReport._id },
         });
       } else {
         pageReport.status = 'crawling';
         await pageReport.save();
+        if (io) io.emit('pageReportUpdated', { reportId, pageReport });
       }
       // Enqueue a BullMQ job for this page
       await pageAuditQueue.add('audit', {

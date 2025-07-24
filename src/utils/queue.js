@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 const Report = require('../models/Report');
 const PageReport = require('../models/PageReport');
+const { io } = require('../app');
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -31,16 +32,38 @@ const pageAuditWorker = new Worker(
         stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
         env: { ...process.env },
       });
-      child.on('message', result => {
+      child.on('message', async result => {
+        // Handle 'auditing' status message from child
+        if (result && result.status === 'auditing') {
+          const pageReport = await PageReport.findById(pageReportId);
+          if (io && pageReport) {
+            io.emit('pageReportUpdated', { reportId, pageReport });
+          }
+          return; // Don't resolve/reject yet
+        }
         if (result && result.success) {
-          PageReport.find({ report: reportId }).then(pageReports => {
+          // Notify about page report completion
+          const pageReport = await PageReport.findById(pageReportId);
+          if (io && pageReport) {
+            io.emit('pageReportUpdated', { reportId, pageReport });
+          }
+          PageReport.find({ report: reportId }).then(async pageReports => {
             const allDone = pageReports.every(pr => pr.status === 'complete' || pr.status === 'error');
             if (allDone) {
-              Report.findByIdAndUpdate(reportId, { status: 'complete' }).catch(() => {});
+              await Report.findByIdAndUpdate(reportId, { status: 'complete' });
+              const report = await Report.findById(reportId).populate('pageReports');
+              if (io && report) {
+                io.emit('reportUpdated', { reportId, report });
+              }
             }
           });
           resolve(result);
         } else {
+          // Notify about page report error
+          const pageReport = await PageReport.findById(pageReportId);
+          if (io && pageReport) {
+            io.emit('pageReportUpdated', { reportId, pageReport });
+          }
           reject(new Error(result && result.error ? result.error : 'Unknown error in child process'));
         }
       });

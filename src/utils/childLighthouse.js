@@ -14,6 +14,8 @@ process.on('message', async (input) => {
     if (!pageReport) throw new Error('PageReport not found');
     pageReport.status = 'auditing';
     await pageReport.save();
+    process.send({ status: 'auditing', pageReportId });
+    // Do NOT emit socket events here
     try {
       browser = await puppeteer.launch({ headless: 'new' });
       const { lhr } = await lighthouse(url, {
