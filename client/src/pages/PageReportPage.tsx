@@ -172,5 +172,6 @@ function renderStatusBadge(status: string) {
   if (status === 'complete') color = 'bg-green-500 text-white';
   else if (status === 'in_progress' || status === 'pending' || status === 'crawling' || status === 'auditing') color = 'bg-yellow-400 text-gray-900';
   else if (status === 'error') color = 'bg-red-500 text-white';
+  else if (status === 'crawled') color = 'bg-purple-500 text-white';
   return <span className={`px-2 py-1 rounded text-xs font-bold ${color}`}>{status.replace('_', ' ')}</span>;
 } 

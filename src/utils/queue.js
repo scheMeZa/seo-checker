@@ -36,6 +36,10 @@ const pageAuditWorker = new Worker(
         // Handle 'auditing' status message from child
         if (result && result.status === 'auditing') {
           const pageReport = await PageReport.findById(pageReportId);
+          if (pageReport && pageReport.status === 'crawled') {
+            pageReport.status = 'auditing';
+            await pageReport.save();
+          }
           if (io && pageReport) {
             io.emit('pageReportUpdated', { reportId, pageReport });
           }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 // @ts-ignore
 import { io as socketIOClient } from 'socket.io-client';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const SOCKET_URL = API_URL.replace(/\/api.*/, ''); // assumes API_URL ends with /api
@@ -125,6 +126,7 @@ export default function ReportPage() {
                 )}
               </div>
             </div>
+            <SeoScoreGraphAndStats pageReports={report.pageReports} />
             <div className="mt-8 text-left">
               <h2 className="text-xl font-bold mb-4 text-primary dark:text-blue-400">Page Results</h2>
               <ul className="flex flex-col gap-4">
@@ -166,15 +168,19 @@ export default function ReportPage() {
 function renderStatusBadge(status: string) {
   let color = 'bg-gray-400 text-white';
   if (status === 'complete') color = 'bg-green-500 text-white';
-  else if (status === 'in_progress' || status === 'pending') color = 'bg-yellow-400 text-gray-900';
+  else if (status === 'in_progress') color = 'bg-amber-400 text-gray-900';
+  else if (status === 'pending') color = 'bg-gray-400 text-white';
+  else if (status === 'crawling') color = 'bg-blue-500 text-white';
+  else if (status === 'auditing') color = 'bg-yellow-400 text-gray-900';
   else if (status === 'error') color = 'bg-red-500 text-white';
+  else if (status === 'crawled') color = 'bg-purple-500 text-white';
   return <span className={`px-2 py-1 rounded text-xs font-bold ${color}`}>{status.replace('_', ' ')}</span>;
 }
 
 function RecentPageEvents({ pageReports }: { pageReports: any[] }) {
   // Sort by updatedAt/createdAt descending, fallback to createdAt if no updatedAt
   const sorted = [...pageReports]
-    .filter(p => p.status !== 'pending')
+    // Show all statuses, including 'pending'
     .sort((a, b) => {
       const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
       const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
@@ -192,14 +198,54 @@ function RecentPageEvents({ pageReports }: { pageReports: any[] }) {
           sorted.map((p, idx) => (
             <li
               key={p._id}
-              className={`transition-all duration-300 rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-700 flex items-center gap-3 w-11/12 ${opacities[idx]}`}
+              className={`transition-all duration-300 rounded-lg px-4 py-2 bg-gray-100 dark:bg-gray-700 flex items-center w-11/12 ${opacities[idx]}`}
             >
-              <span className="font-mono text-xs truncate max-w-[12rem] text-gray-700 dark:text-gray-200">{p.url}</span>
-              {renderStatusBadge(p.status)}
+              <span className="font-mono text-xs truncate text-gray-700 dark:text-gray-200 flex-grow text-left">{p.url}</span>
+              <span className="flex-shrink-0 ml-4">{renderStatusBadge(p.status)}</span>
             </li>
           ))
         )}
       </ul>
+    </div>
+  );
+}
+
+function SeoScoreGraphAndStats({ pageReports }: { pageReports: any[] }) {
+  const seoScores = pageReports
+    .filter((p: any) => typeof p.seoScore === 'number')
+    .map((p: any) => ({ url: p.url, score: p.seoScore }));
+  if (seoScores.length === 0) return null;
+  const avg = Math.round(seoScores.reduce((sum, p) => sum + p.score, 0) / seoScores.length);
+  const min = Math.min(...seoScores.map(p => p.score));
+  const max = Math.max(...seoScores.map(p => p.score));
+  return (
+    <div className="w-full flex flex-col items-center mb-8">
+      <h3 className="text-base font-semibold text-primary dark:text-blue-400 mb-2">SEO Score Distribution</h3>
+      <div className="w-full h-48 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={seoScores} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="url" tick={false} />
+            <YAxis domain={[0, 100]} />
+            <Tooltip formatter={(value: any) => `${value}`} labelFormatter={() => ''} />
+            <Bar dataKey="score" fill="#1169fe" radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap gap-6 justify-center w-full mb-2">
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Average</span>
+          <span className="text-xl font-bold text-primary dark:text-blue-400">{avg}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Min</span>
+          <span className="text-xl font-bold text-red-500 dark:text-red-400">{min}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Max</span>
+          <span className="text-xl font-bold text-green-600 dark:text-green-400">{max}</span>
+        </div>
+      </div>
     </div>
   );
 } 

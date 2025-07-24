@@ -11,12 +11,11 @@ const PageReportSchema = new mongoose.Schema({
   recommendations: [{type: String}],
   status:          {
     type:    String,
-    enum:    ['pending', 'in_progress', 'crawling', 'auditing', 'complete', 'error'],
+    enum:    ['pending', 'in_progress', 'crawling', 'crawled', 'auditing', 'complete', 'error'],
     default: 'pending',
   },
-  createdAt:       {type: Date, default: Date.now},
   error:           {type: String},
   lighthouseResult: {type: mongoose.Schema.Types.Mixed},
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('PageReport', PageReportSchema);

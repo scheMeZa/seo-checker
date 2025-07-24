@@ -31,14 +31,28 @@ async function processReport(reportId, url) {
     const report = await Report.findById(reportId);
     let allLinks = [url];
     if (report.crawl) {
-      allLinks = await crawlSiteRecursive(url);
-    }
-
-    // Track already created PageReports
-    for (const link of allLinks) {
-      let pageReport = await PageReport.findOne({ report: reportId, url: link });
+      allLinks = [];
+      await crawlSiteRecursive(url, undefined, async (discoveredUrl) => {
+        allLinks.push(discoveredUrl);
+        let pageReport = await PageReport.findOne({ report: reportId, url: discoveredUrl });
+        if (!pageReport) {
+          pageReport = new PageReport({ report: reportId, url: discoveredUrl, status: 'crawling' });
+          await pageReport.save();
+          if (io) io.emit('pageReportUpdated', { reportId, pageReport });
+          await Report.findByIdAndUpdate(reportId, {
+            $addToSet: { pageReports: pageReport._id },
+          });
+        } else {
+          pageReport.status = 'crawling';
+          await pageReport.save();
+          if (io) io.emit('pageReportUpdated', { reportId, pageReport });
+        }
+      });
+    } else {
+      // Single page mode
+      let pageReport = await PageReport.findOne({ report: reportId, url });
       if (!pageReport) {
-        pageReport = new PageReport({ report: reportId, url: link, status: 'crawling' });
+        pageReport = new PageReport({ report: reportId, url, status: 'crawling' });
         await pageReport.save();
         if (io) io.emit('pageReportUpdated', { reportId, pageReport });
         await Report.findByIdAndUpdate(reportId, {
@@ -49,11 +63,19 @@ async function processReport(reportId, url) {
         await pageReport.save();
         if (io) io.emit('pageReportUpdated', { reportId, pageReport });
       }
+    }
+
+    // After crawling, set all to 'crawled' and enqueue for audit
+    const pageReports = await PageReport.find({ report: reportId, status: 'crawling' });
+    for (const pageReport of pageReports) {
+      pageReport.status = 'crawled';
+      await pageReport.save();
+      if (io) io.emit('pageReportUpdated', { reportId, pageReport });
       // Enqueue a BullMQ job for this page
       await pageAuditQueue.add('audit', {
         reportId: reportId.toString(),
         pageReportId: pageReport._id.toString(),
-        url: link,
+        url: pageReport.url,
       });
     }
 
@@ -80,9 +102,10 @@ exports.getReport = async (req, res) => {
 
 exports.getAllReports = async (req, res) => {
   try {
-    const reports = await Report.find({})
-      .sort({ createdAt: -1 })
-      .populate('pageReports');
+    const limit = parseInt(req.query.limit, 10) || 0;
+    let query = Report.find({}).sort({ createdAt: -1 }).populate('pageReports');
+    if (limit > 0) query = query.limit(limit);
+    const reports = await query;
     res.json(reports);
   } catch (err) {
     console.error('Error fetching all reports:', err);
