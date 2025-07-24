@@ -1,3 +1,11 @@
+# SEO Checker Client
+
+> **Note:** This app is built for desktop browsers only. Mobile and tablet layouts are not supported.
+>
+> **Features:**
+> - Fully responsive for desktop
+> - Light and dark mode toggle (auto and manual)
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
