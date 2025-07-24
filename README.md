@@ -9,14 +9,17 @@ A simple, open-source SEO checker for your website. Enter your site's URL and ge
 - Optionally crawl and score all internal links for a comprehensive report
 - Clean, modern UI powered by TailwindCSS
 
-## Technologies Used
+## Tech Stack
 
 - Node.js
 - Express
 - MongoDB (Mongoose)
-- React
+- Puppeteer
+- Lighthouse
+- **BullMQ** (queue management for concurrent audits)
+- **Redis** (required for BullMQ)
+- React + Vite (frontend)
 - Tailwind CSS
-- Puppeteer (for crawling and extracting links from pages)
 
 ## Getting Started
 

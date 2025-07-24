@@ -60,15 +60,17 @@ export default function ReportPage() {
         <p className="mb-6 text-gray-700 dark:text-gray-300">Report ID: <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{reportId}</span></p>
         {error && <div className="text-red-600 dark:text-red-400 mt-4">{error}</div>}
         {(loading || (report && (report.status === 'pending' || report.status === 'in_progress'))) ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <svg className="animate-spin h-16 w-16 text-primary dark:text-blue-400 mb-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-            <div className="text-2xl font-extrabold text-primary dark:text-blue-400 animate-pulse mb-2 tracking-wide uppercase">Generating Report...</div>
-            <div className="text-lg text-gray-700 dark:text-gray-300 animate-pulse mb-4">This may take up to a minute for large sites.</div>
+          <div className="flex flex-col items-center justify-center py-24 space-y-16">
+            <div className="flex flex-col items-center">
+              <svg className="animate-spin h-16 w-16 text-primary dark:text-blue-400 mb-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              <div className="text-2xl font-extrabold text-primary dark:text-blue-400 animate-pulse mb-2 tracking-wide uppercase">Generating Report...</div>
+              <div className="text-lg text-gray-700 dark:text-gray-300 animate-pulse mb-4">This may take up to a minute for large sites.</div>
+            </div>
             {report && report.pageReports && report.pageReports.length > 0 && (
-              <>
+              <div className="flex flex-col items-center">
                 <div className="text-lg font-semibold text-primary dark:text-blue-400 mb-2">
                   {complete} / {total} pages complete
                 </div>
@@ -79,7 +81,7 @@ export default function ReportPage() {
                   ></div>
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Progress: {progress}%</div>
-              </>
+              </div>
             )}
           </div>
         ) : report && report.status === 'complete' && (

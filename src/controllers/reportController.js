@@ -4,6 +4,7 @@ const { crawlSiteRecursive } = require('../utils/crawl');
 const puppeteer = require('puppeteer');
 const lighthouse = (...args) => import('lighthouse').then(mod => mod.default(...args));
 const { URL } = require('url');
+const { pageAuditQueue } = require('../utils/queue');
 
 exports.createReport = async (req, res) => {
   try {
@@ -33,7 +34,6 @@ async function processReport(reportId, url) {
     }
 
     // Track already created PageReports
-    const pageReportMap = {};
     for (const link of allLinks) {
       let pageReport = await PageReport.findOne({ report: reportId, url: link });
       if (!pageReport) {
@@ -46,35 +46,16 @@ async function processReport(reportId, url) {
         pageReport.status = 'crawling';
         await pageReport.save();
       }
-      pageReportMap[link] = pageReport;
+      // Enqueue a BullMQ job for this page
+      await pageAuditQueue.add('audit', {
+        reportId: reportId.toString(),
+        pageReportId: pageReport._id.toString(),
+        url: link,
+      });
     }
 
-    // Launch Puppeteer once for all Lighthouse runs
-    const browser = await puppeteer.launch({ headless: 'new' });
-    for (const link of allLinks) {
-      const pageReport = pageReportMap[link];
-      // Set status to 'auditing'
-      pageReport.status = 'auditing';
-      await pageReport.save();
-      try {
-        // Run Lighthouse
-        const { lhr } = await lighthouse(link, {
-          port: new URL(browser.wsEndpoint()).port,
-          output: 'json',
-          logLevel: 'error',
-        });
-        pageReport.lighthouseResult = lhr;
-        pageReport.seoScore = lhr.categories.seo.score * 100;
-        pageReport.status = 'complete';
-        await pageReport.save();
-      } catch (err) {
-        pageReport.status = 'error';
-        pageReport.error = err.message;
-        await pageReport.save();
-      }
-    }
-    await browser.close();
-    await Report.findByIdAndUpdate(reportId, { status: 'complete' });
+    // TODO: Optionally, track job completion and set report.status = 'complete' when all are done
+    // For now, status is set to 'in_progress' after enqueueing
   } catch (err) {
     console.error('Error processing report:', err);
     await Report.findByIdAndUpdate(reportId, { status: 'error', error: err.message });
