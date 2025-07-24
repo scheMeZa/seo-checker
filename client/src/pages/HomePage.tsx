@@ -1,10 +1,8 @@
 import React, { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// @ts-ignore
 import { io as socketIOClient } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Bolt icon from Heroicons (solid)
 const BoltIcon = (
   <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-6 h-6">
     <path d="M13.28 2.217a.75.75 0 0 1 .72.933l-1.14 4.557h5.19a1.25 1.25 0 0 1 .97 2.06l-8.25 10a.75.75 0 0 1-1.32-.68l1.14-4.557h-5.19a1.25 1.25 0 0 1-.97-2.06l8.25-10a.75.75 0 0 1 .6-.253z" />
@@ -90,7 +88,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center bg-gray-100 dark:bg-gray-900 transition-colors ${latestReports.length > 0 ? 'justify-start pt-16' : 'justify-center'}`}>
+    <div className={`min-h-screen flex flex-col items-center bg-gray-100 dark:bg-gray-900 transition-colors py-16 ${latestReports.length > 0 ? 'justify-start pt-16' : 'justify-center'}`}>
       <motion.h1
         className="text-3xl font-bold mb-10 text-primary dark:text-blue-400"
         initial={{ opacity: 1, y: 0 }}

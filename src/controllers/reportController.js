@@ -16,8 +16,6 @@ exports.createReport = async (req, res) => {
     const report = new Report({ url, crawl: !!crawl });
     await report.save();
     res.status(201).json(report);
-
-    // Start background processing (async, not blocking response)
     processReport(report._id, url);
   } catch (err) {
     console.error('Error creating report:', err);
