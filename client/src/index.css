@@ -3,3 +3,5 @@
 @theme {
     --color-primary: #1169fe;
 }
+
+@custom-variant dark (&:where(.dark, .dark *));
