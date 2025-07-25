@@ -2,6 +2,20 @@
 
 > **Note:** This app is built for desktop browsers only. Mobile and tablet layouts are not supported.
 >
+> **Setup:**
+> 1. Copy `.env.example` to `.env`:
+>    ```sh
+>    cp .env.example .env
+>    ```
+> 2. Install dependencies:
+>    ```sh
+>    npm install
+>    ```
+> 3. Start the development server:
+>    ```sh
+>    npm run dev
+>    ```
+>
 > **Features:**
 > - Fully responsive for desktop
 > - Light and dark mode toggle (auto and manual)
