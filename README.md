@@ -1,6 +1,16 @@
 # SEO Checker
 
-A simple, open-source SEO checker for your website. Enter your site's URL and get actionable recommendations to improve your search engine ranking. Track your progress over time and see how your changes impact your SEO score.
+## What does this app do?
+SEO Checker is an open-source tool that audits your website for SEO best practices. It crawls your site, analyzes each page, and provides actionable recommendations to help you improve your search engine ranking. You can track your progress over time and see how your changes impact your SEO score.
+
+## Why is this data interesting or valuable?
+SEO data is crucial for understanding how your website performs in search engines. By identifying technical issues, content gaps, and optimization opportunities, you can make informed decisions that drive more organic traffic to your site. The insights provided help you prioritize fixes that have the biggest impact on your visibility and growth.
+
+## Who might find this useful?
+- Website owners and bloggers who want to improve their site's search ranking
+- Digital marketers and SEO professionals seeking actionable audit reports
+- Developers and agencies building or maintaining client websites
+- Anyone interested in learning about and improving website SEO
 
 ## Features
 - 🚀 **Real-time progress updates**: Watch your SEO audit and crawl progress live, thanks to instant socket-powered updates.
